@@ -160,7 +160,7 @@ textarea{min-height:60px;resize:vertical}
 </div>
 <script>
 // AKTUELLES PASSWORT: admin123
-const PW_HASH="240be518fabd2724ddb6f04eeb1da5967448d7e831c08c8fa822809f74c720a9";
+const PW_HASH="7a9630e4fc1adbb8794a5db4f719241bdfb78f5788f2df688f978fab5fba6ba7";
 // NEUES PASSWORT SETZEN: Öffne die Browser-Konsole (F12) und gib ein: hashPassword("deinNeuesPasswort")
 // Kopiere den Hash und ersetze PW_HASH oben
 async function hashPassword(pw){const enc=new TextEncoder().encode(pw);const hash=await crypto.subtle.digest('SHA-256',enc);return Array.from(new Uint8Array(hash)).map(b=>b.toString(16).padStart(2,'0')).join('')}
@@ -224,4 +224,5 @@ document.getElementById('pw').addEventListener('keypress',e=>{if(e.key==='Enter'
 load();render();
 </script>
 </body>
+
 </html>
