@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Wunschzettel</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Calibri','Candara',sans-serif;background:#f0f5f0;min-height:100vh;padding:20px}
+.container{max-width:1100px;margin:0 auto;background:#fff;border:1px solid #d0e0d0;padding:40px;box-shadow:0 2px 8px rgba(0,0,0,0.08)}
+h1{color:#4a7c59;text-align:center;margin-bottom:30px;font-size:2.3em;font-weight:400;letter-spacing:0.5px}
+.tabs{display:flex;gap:8px;margin-bottom:30px;flex-wrap:wrap;justify-content:center}
+.tab-btn{padding:10px 24px;background:#fff;border:1px solid #c0d5c0;font-size:1em;cursor:pointer;font-weight:400;color:#4a7c59;transition:all 0.2s}
+.tab-btn:hover{background:#f5faf5}
+.tab-btn.active{background:#6b9d7f;color:#fff;border-color:#5a8d6f}
+.intro{text-align:center;color:#5a6d5a;margin-bottom:40px;font-size:1.05em;line-height:1.7}
+.filter{background:#f8fcf8;padding:15px;border:1px solid #e0ebe0;margin-bottom:25px;display:flex;align-items:center;gap:10px}
+.filter label{display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:400;color:#4a7c59}
+.filter input[type="checkbox"]{width:18px;height:18px;cursor:pointer}
+.cat-header{background:#6b9d7f;color:#fff;padding:14px 18px;cursor:pointer;display:flex;justify-content:space-between;font-size:1.1em;font-weight:400;margin-bottom:15px;border:1px solid#5a8d6f}
+.cat-content{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:25px;margin-bottom:30px}
+.cat-content.hide{display:none}
+.card{background:#fff;border:1px solid#d5e5d5;overflow:hidden;transition:box-shadow 0.2s}
+.card.hide{display:none}
+.card:hover{box-shadow:0 3px 12px rgba(107,157,127,0.15)}
+.img-box{position:relative;height:240px;background:#f8fdf8}
+.img-box img{width:100%;height:100%;object-fit:cover}
+.badge-res{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(169,90,90,0.92);color:#fff;padding:12px 24px;font-size:1.2em;font-weight:400;z-index:10}
+.badge-part{position:absolute;top:10px;right:10px;background:rgba(230,160,80,0.92);color:#fff;padding:6px 12px;font-size:0.85em;font-weight:400}
+.badge-pri{position:absolute;top:10px;left:10px;background:linear-gradient(135deg,#ff6b9d 0%,#feca57 25%,#48dbfb 50%,#1dd1a1 75%,#ee5a6f 100%);color:#fff;padding:4px 10px;font-size:0.85em;font-weight:500;display:flex;gap:4px;text-shadow:0 1px 2px rgba(0,0,0,0.2)}
+.content{padding:20px}
+.title{font-size:1.3em;font-weight:500;margin-bottom:10px;color:#3a5a3a}
+.note{color:#6a7a6a;font-style:italic;margin-bottom:10px;font-size:0.95em}
+.price{font-size:1.25em;color:#6b9d7f;font-weight:500;margin-bottom:10px}
+.link{color:#5a8d6f;display:inline-block;margin-bottom:15px;text-decoration:underline}
+.res-by{background:#f0f8f0;padding:10px;border-left:3px solid #7daa90;margin-bottom:15px;font-weight:400;color:#4a6a4a}
+.res-list{background:#f8fcf8;padding:10px;border:1px solid#e0ebe0;margin-bottom:15px}
+.res-item{padding:8px;margin-bottom:8px;background:#fff;border-left:2px solid#8db39d}
+.com-toggle{background:#f8fcf8;padding:10px;border:1px solid#e0ebe0;cursor:pointer;margin-bottom:10px;text-align:center;font-weight:400;color:#5a7a5a}
+.com-section{display:none;margin-bottom:15px}
+.com-section.show{display:block}
+.com-list{background:#fafcfa;padding:10px;border:1px solid#e0ebe0;margin-bottom:10px;max-height:150px;overflow-y:auto}
+.com-item{padding:8px;margin-bottom:8px;background:#fff;border-left:2px solid#8db39d}
+.com-form{background:#f8fcf8;padding:10px;border:1px solid#e0ebe0}
+select,textarea,input{width:100%;padding:9px;border:1px solid#c5d5c5;margin-bottom:8px;font-family:'Calibri','Candara',sans-serif;background:#fff;font-size:1em}
+textarea{min-height:60px;resize:vertical}
+.btn{width:100%;padding:11px;background:#6b9d7f;color:#fff;border:1px solid#5a8d6f;font-weight:400;cursor:pointer;margin-bottom:5px;transition:background 0.2s;font-size:1em}
+.btn:hover{background:#5a8d6f}
+.btn:disabled{background:#ccc;border-color:#bbb;cursor:not-allowed}
+.btn-del{background:#a96a6a;border-color#8b5a5a}
+.btn-del:hover{background:#8b5a5a}
+.modal{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(74,124,89,0.5);z-index:1000;justify-content:center;align-items:center}
+.modal.show{display:flex}
+.modal-box{background:#fff;padding:30px;border:1px solid#c5d5c5;max-width:400px;width:90%;box-shadow:0 4px 16px rgba(0,0,0,0.12)}
+.modal-box h2{color:#4a7c59;font-weight:400;margin-bottom:20px}
+.modal-box label{color:#4a7c59;font-weight:500}
+.modal-btns{display:flex;gap:10px;margin-top:20px}
+.modal-btn{flex:1;padding:11px;border:1px solid#c5d5c5;font-weight:400;cursor:pointer;transition:all 0.2s;font-size:1em}
+.modal-btn.ok{background:#6b9d7f;color:#fff;border-color#5a8d6f}
+.modal-btn.ok:hover{background:#5a8d6f}
+.modal-btn.cancel{background:#fff;color:#4a7c59}
+.modal-btn.cancel:hover{background:#f5faf5}
+.admin{margin-top:40px;padding:20px;background:#f8fcf8;border:1px solid#e0ebe0;display:none}
+.admin.show{display:block}
+.admin h2,.admin h3{color:#4a7c59;font-weight:400}
+.admin-box{background:#fff;padding:15px;border:1px solid#e0ebe0;margin-bottom:20px}
+.name-item{background:#fff;padding:10px 15px;border:1px solid#e0ebe0;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center}
+.gear{position:fixed;bottom:20px;right:20px;width:48px;height:48px;background:#6b9d7f;color:#fff;border:1px solid#5a8d6f;font-size:22px;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,0.15);z-index:100}
+.gear:hover{background:#5a8d6f}
+.err{color:#a96a6a;margin-bottom:15px}
+@media(max-width:768px){h1{font-size:2em}.cat-content{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="container">
+<h1>Meine Wunschzettel</h1>
+<div class="tabs" id="tabs"></div>
+<div id="content"></div>
+<div class="admin" id="admin">
+<h2>Admin-Bereich</h2>
+<div class="admin-box">
+<h3>Wunschzettel verwalten</h3>
+<div id="lists"></div>
+<hr style="margin:15px 0">
+<h4>Neuen Wunschzettel erstellen:</h4>
+<input type="text" id="newListName" placeholder="Name für neuen Wunschzettel">
+<input type="text" id="newListIntro" placeholder="Intro-Text">
+<button class="btn" onclick="addList()">Wunschzettel hinzufügen</button>
+</div>
+<div class="admin-box">
+<h3>Wünsche verwalten (aktueller Wunschzettel)</h3>
+<div id="wishes"></div>
+</div>
+<div class="admin-box">
+<h3>Wunsch hinzufügen/bearbeiten</h3>
+<input type="hidden" id="editWishId" value="">
+<input type="text" id="wishTitle" placeholder="Titel">
+<input type="text" id="wishImage" placeholder="Bild-URL">
+<input type="text" id="wishNote" placeholder="Anmerkung">
+<input type="number" id="wishPrice" placeholder="Preis in Euro">
+<label>Preiskategorie:</label>
+<select id="wishCat">
+<option value="auto">Automatisch</option>
+<option value="bis10">bis 10 Euro</option>
+<option value="10-30">10 - 30 Euro</option>
+<option value="30-80">30 - 80 Euro</option>
+<option value="80-150">80 - 150 Euro</option>
+<option value="über150">über 150 Euro</option>
+</select>
+<label>Priorität:</label>
+<select id="wishPri">
+<option value="1">⭐ Gewünscht</option>
+<option value="2">⭐⭐ Sehr gewünscht</option>
+<option value="3">⭐⭐⭐ Herzenswunsch</option>
+</select>
+<input type="text" id="wishLink" placeholder="Shop-Link">
+<label style="display:flex;align-items:center;gap:8px;margin:10px 0">
+<input type="checkbox" id="wishMulti" style="width:18px;height:18px">
+<span>Mehrfach möglich</span>
+</label>
+<button class="btn" onclick="saveWish()" id="saveWishBtn">Wunsch hinzufügen</button>
+<button class="btn" onclick="cancelWish()" id="cancelWishBtn" style="display:none">Abbrechen</button>
+</div>
+<div class="admin-box">
+<h3>Namen verwalten</h3>
+<div id="names"></div>
+<hr style="margin:15px 0">
+<input type="text" id="newName" placeholder="Neuer Name">
+<button class="btn" onclick="addName()">Name hinzufügen</button>
+</div>
+</div>
+</div>
+<button class="gear" onclick="showPw()">⚙️</button>
+<div class="modal" id="pwModal">
+<div class="modal-box">
+<h2>Admin-Zugang</h2>
+<div class="err" id="pwErr" style="display:none">Falsches Passwort!</div>
+<input type="password" id="pw" placeholder="Passwort">
+<div class="modal-btns">
+<button class="modal-btn cancel" onclick="closePw()">Abbrechen</button>
+<button class="modal-btn ok" onclick="checkPw()">Bestätigen</button>
+</div>
+</div>
+</div>
+<div class="modal" id="resModal">
+<div class="modal-box">
+<h2>Wunsch vormerken</h2>
+<div class="err" id="resErr" style="display:none"></div>
+<label>Wähle deinen Namen:</label>
+<select id="resName"><option value="">-- Bitte wählen --</option></select>
+<div id="detailBox" style="display:none">
+<label>Was schenkst du konkret?</label>
+<input type="text" id="detail" placeholder="z.B. Brauner Teddy, 30cm">
+</div>
+<div class="modal-btns">
+<button class="modal-btn cancel" onclick="closeRes()">Abbrechen</button>
+<button class="modal-btn ok" onclick="confirmRes()">Bestätigen</button>
+</div>
+</div>
+</div>
+<script>
+// AKTUELLES PASSWORT: admin123
+const PW_HASH="240be518fabd2724ddb6f04eeb1da5967448d7e831c08c8fa822809f74c720a9";
+// NEUES PASSWORT SETZEN: Öffne die Browser-Konsole (F12) und gib ein: hashPassword("deinNeuesPasswort")
+// Kopiere den Hash und ersetze PW_HASH oben
+async function hashPassword(pw){const enc=new TextEncoder().encode(pw);const hash=await crypto.subtle.digest('SHA-256',enc);return Array.from(new Uint8Array(hash)).map(b=>b.toString(16).padStart(2,'0')).join('')}
+const PRI={1:{s:'⭐',t:'Gewünscht'},2:{s:'⭐⭐',t:'Sehr gewünscht'},3:{s:'⭐⭐⭐',t:'Herzenswunsch'}};
+const CAT={'bis10':{l:'bis 10€',o:1},'10-30':{l:'10-30€',o:2},'30-80':{l:'30-80€',o:3},'80-150':{l:'80-150€',o:4},'über150':{l:'über 150€',o:5}};
+let lists=[{id:1,name:"Wunschzettel 1",intro:"Willkommen!",wishes:[{id:1,title:"Beispiel",image:"https://via.placeholder.com/300x250",note:"Beispiel",price:50,cat:'auto',pri:2,link:"https://example.com",multi:false,res:[],coms:[]}]},{id:2,name:"Wunschzettel 2",intro:"Zweiter Zettel",wishes:[{id:1,title:"Kuscheltiere",image:"https://via.placeholder.com/300x250",note:"Mehrere möglich",price:25,cat:'auto',pri:3,link:"https://example.com",multi:true,res:[],coms:[]}]}];
+let names=["Anna","Max","Lisa","Tom"];
+let resData={};
+let cur=1,hide=false,cols={},openCom={},resWish=null;
+function load(){try{window.storage.get('wishlist-data').then(result=>{if(result&&result.value){const data=JSON.parse(result.value);lists=data.lists||lists;names=data.names||names;resData=data.resData||resData;cur=data.cur||cur}render()}).catch(e=>{console.log('Lade Beispieldaten');render()})}catch(e){console.log('Storage nicht verfügbar, nutze Beispieldaten');render()}}
+function save(){try{const data={lists,names,resData,cur};window.storage.set('wishlist-data',JSON.stringify(data)).catch(e=>console.error('Speichern fehlgeschlagen:',e))}catch(e){console.error('Storage nicht verfügbar:',e)}}
+function getCat(p,m){if(m&&m!=='auto')return m;if(p<=10)return'bis10';if(p<=30)return'10-30';if(p<=80)return'30-80';if(p<=150)return'80-150';return'über150'}
+function render(){
+const t=document.getElementById('tabs');t.innerHTML='';
+lists.forEach(l=>{const b=document.createElement('button');b.className='tab-btn'+(l.id===cur?' active':'');b.textContent=l.name;b.onclick=()=>{cur=l.id;save();render()};t.appendChild(b)});
+const c=document.getElementById('content');c.innerHTML='';
+const cl=lists.find(l=>l.id===cur);
+c.innerHTML=`<div class="intro"><p>${cl.intro}</p></div><div class="filter"><label><input type="checkbox" ${hide?'checked':''} onchange="hide=!hide;render()"><span>Vergriffene ausblenden</span></label></div>`;
+const byC={};
+cl.wishes.forEach(w=>{const ct=getCat(w.price,w.cat);if(!byC[ct])byC[ct]=[];byC[ct].push(w)});
+Object.keys(byC).sort((a,b)=>CAT[a].o-CAT[b].o).forEach(ct=>{
+const s=document.createElement('div');const h=document.createElement('div');h.className='cat-header';h.innerHTML=`<span>${CAT[ct].l} (${byC[ct].length} Wünsche)</span><span style="transform:${cols[ct]?'rotate(-90deg)':'none'};transition:.3s">▼</span>`;
+h.onclick=()=>{cols[ct]=!cols[ct];render()};s.appendChild(h);
+const g=document.createElement('div');g.className='cat-content'+(cols[ct]?' hide':'');
+byC[ct].forEach(w=>{
+const isR=!w.multi&&w.res&&w.res.length>0;
+const d=document.createElement('div');d.className='card'+(hide&&isR?' hide':'');
+let rh='';
+if(w.res&&w.res.length>0){
+if(w.multi){rh='<div class="res-list"><strong>Bereits zugesagt:</strong>';w.res.forEach(r=>{const n=typeof r==='object'?r.name:r;const dt=typeof r==='object'?r.detail:'';rh+=`<div class="res-item"><div style="font-weight:700;color:#667eea">✓ ${n}</div>${dt?`<div style="font-size:.9em;color:#555">${dt}</div>`:''}</div>`});rh+='</div>'} else{rh=`<div class="res-by">🎁 Wird geschenkt von: ${typeof w.res[0]==='object'?w.res[0].name:w.res[0]}</div>`}
+}
+let ch='';
+if(w.coms&&w.coms.length>0){ch='<div class="com-list">';w.coms.forEach(cm=>{ch+=`<div class="com-item"><div style="font-weight:700;color:#667eea;font-size:.9em">${cm.author}:</div><div style="color:#555;font-size:.9em">${cm.text}</div></div>`});ch+='</div>'}
+const p=PRI[w.pri||1];
+d.innerHTML=`<div class="img-box"><img src="${w.image}"><div class="badge-pri"><span>${p.s}</span><span>${p.t}</span></div>${isR?'<div class="badge-res">bereits vergriffen</div>':''}${w.multi&&w.res&&w.res.length>0?`<div class="badge-part">${w.res.length}x zugesagt</div>`:''}</div><div class="content"><div class="title">${w.title}</div><div class="note">${w.note}</div><div class="price">${w.price.toFixed(2)} €</div><a href="${w.link}" target="_blank" class="link">Zum Shop →</a>${rh}<div class="com-toggle" onclick="toggleCom(${cur},${w.id})">💬 Kommentare${w.coms&&w.coms.length>0?' ('+w.coms.length+')':''}</div><div class="com-section${openCom[cur+'-'+w.id]?' show':''}" id="com-${cur}-${w.id}">${ch}<div class="com-form"><select id="cn-${cur}-${w.id}"><option value="">-- Wähle deinen Namen --</option>${names.map(n=>`<option value="${n}">${n}</option>`).join('')}</select><textarea id="ct-${cur}-${w.id}" placeholder="Dein Kommentar..."></textarea><button class="btn" onclick="addCom(${cur},${w.id})">Senden</button></div></div><button class="btn" onclick="openRes(${cur},${w.id})" ${isR?'disabled':''}>${isR?'Bereits vorgemerkt':'Vormerken'}</button>`;
+names.forEach(n=>{const has=w.res&&w.res.some(r=>(typeof r==='object'?r.name:r)===n);if(has){const b=document.createElement('button');b.className='btn btn-del';b.textContent=n+': Vormerkung aufheben';b.onclick=()=>{if(confirm(`Vormerkung von "${n}" aufheben?`)){w.res=w.res.filter(r=>(typeof r==='object'?r.name:r)!==n);if(resData[n]){resData[n].count--;resData[n].total-=w.price}save();render()}};d.querySelector('.content').appendChild(b)}});
+g.appendChild(d)});
+s.appendChild(g);c.appendChild(s)});
+const nm=document.getElementById('names');nm.innerHTML='';names.forEach(n=>{nm.innerHTML+=`<div class="name-item"><span>${n}</span><button class="btn btn-del" style="width:auto;padding:5px 10px" onclick="delName('${n}')">Löschen</button></div>`});
+const wl=document.getElementById('wishes');wl.innerHTML='';const curList=lists.find(x=>x.id===cur);if(curList&&curList.wishes.length>0){curList.wishes.forEach(w=>{wl.innerHTML+=`<div class="name-item"><span><strong>${w.title}</strong> - ${w.price.toFixed(2)}€</span><div style="display:flex;gap:8px"><button class="btn" style="width:auto;padding:5px 10px" onclick="editWish(${w.id})">Bearbeiten</button><button class="btn btn-del" style="width:auto;padding:5px 10px" onclick="delWish(${w.id})">Löschen</button></div></div>`})} else{wl.innerHTML='<p style="color:#6a7a6a">Noch keine Wünsche vorhanden.</p>'}
+const ll=document.getElementById('lists');ll.innerHTML='';lists.forEach(l=>{ll.innerHTML+=`<div class="name-item" style="flex-direction:column;align-items:stretch;gap:8px"><div style="display:flex;justify-content:space-between;align-items:center"><strong>${l.name}</strong><button class="btn btn-del" style="width:auto;padding:5px 10px" onclick="delList(${l.id})">Löschen</button></div><input type="text" value="${l.name}" id="ln-${l.id}" placeholder="Name"><textarea id="li-${l.id}" placeholder="Intro" style="min-height:60px">${l.intro}</textarea><button class="btn" style="width:auto;padding:5px 10px" onclick="updateList(${l.id})">Speichern</button></div>`})
+}
+function toggleCom(l,w){openCom[l+'-'+w]=!openCom[l+'-'+w];render()}
+function addCom(l,w){const ls=lists.find(x=>x.id===l);const ww=ls.wishes.find(x=>x.id===w);const n=document.getElementById(`cn-${l}-${w}`).value;const t=document.getElementById(`ct-${l}-${w}`).value.trim();if(!n){alert('⚠️ Bitte wähle deinen Namen aus!');return}if(!t){alert('⚠️ Bitte gib einen Kommentar ein!');return}if(!ww.coms)ww.coms=[];ww.coms.push({author:n,text:t});save();render()}
+function openRes(l,w){resWish={l,w};const ls=lists.find(x=>x.id===l);const ww=ls.wishes.find(x=>x.id===w);const s=document.getElementById('resName');s.innerHTML='<option value="">-- Bitte wählen --</option>'+names.map(n=>`<option value="${n}">${n}</option>`).join('');document.getElementById('detailBox').style.display=ww.multi?'block':'none';document.getElementById('resErr').style.display='none';document.getElementById('resModal').classList.add('show')}
+function closeRes(){document.getElementById('resModal').classList.remove('show');resWish=null}
+function confirmRes(){const n=document.getElementById('resName').value;const dt=document.getElementById('detail').value.trim();const e=document.getElementById('resErr');e.style.display='none';if(!n){e.textContent='⚠️ Bitte wähle einen Namen aus!';e.style.display='block';return}const ls=lists.find(x=>x.id===resWish.l);const w=ls.wishes.find(x=>x.id===resWish.w);if(w.multi&&!dt){e.textContent='⚠️ Bitte gib an, was du konkret schenken möchtest!';e.style.display='block';return}const u=resData[n]||{count:0,total:0};if(u.count>=2){e.textContent='⚠️ Du hast bereits 2 Wünsche vorgemerkt!';e.style.display='block';return}if(u.total+w.price>250){e.textContent=`⚠️ Limit von 250€ überschritten! (Aktuell: ${u.total.toFixed(2)}€)`;e.style.display='block';return}if(!w.res)w.res=[];w.res.push(w.multi?{name:n,detail:dt}:n);resData[n]={count:u.count+1,total:u.total+w.price};save();render();closeRes()}
+function showPw(){document.getElementById('pwModal').classList.add('show');document.getElementById('pw').value='';document.getElementById('pwErr').style.display='none'}
+function closePw(){document.getElementById('pwModal').classList.remove('show')}
+async function checkPw(){const p=document.getElementById('pw').value;const h=await hashPassword(p);console.log('Eingegebener Hash:',h);console.log('Erwarteter Hash:',PW_HASH);if(h===PW_HASH){closePw();document.getElementById('admin').classList.add('show')}else{document.getElementById('pwErr').style.display='block';document.getElementById('pw').value=''}}
+function addName(){const n=document.getElementById('newName').value.trim();if(!n){alert('⚠️ Bitte gib einen Namen ein!');return}if(names.includes(n)){alert('⚠️ Name existiert bereits!');return}names.push(n);document.getElementById('newName').value='';save();render();alert('✅ Name hinzugefügt!')}
+function delName(n){if(confirm(`"${n}" löschen?`)){names=names.filter(x=>x!==n);save();render()}}
+function addList(){const n=document.getElementById('newListName').value.trim();const i=document.getElementById('newListIntro').value.trim();if(!n){alert('⚠️ Bitte Namen eingeben!');return}lists.push({id:lists.length>0?Math.max(...lists.map(l=>l.id))+1:1,name:n,intro:i||'Willkommen!',wishes:[]});document.getElementById('newListName').value='';document.getElementById('newListIntro').value='';save();render()}
+function updateList(id){const l=lists.find(x=>x.id===id);const n=document.getElementById(`ln-${id}`).value.trim();const i=document.getElementById(`li-${id}`).value.trim();if(!n){alert('⚠️ Name darf nicht leer sein!');return}l.name=n;l.intro=i;save();render();alert('✅ Aktualisiert!')}
+function delList(id){if(lists.length===1){alert('⚠️ Letzten Wunschzettel kann nicht gelöscht werden!');return}const l=lists.find(x=>x.id===id);if(confirm(`"${l.name}" löschen?`)){lists=lists.filter(x=>x.id!==id);if(cur===id)cur=lists[0].id;save();render()}}
+function editWish(id){const wList=lists.find(l=>l.id===cur);const w=wList.wishes.find(x=>x.id===id);document.getElementById('editWishId').value=id;document.getElementById('wishTitle').value=w.title;document.getElementById('wishImage').value=w.image;document.getElementById('wishNote').value=w.note;document.getElementById('wishPrice').value=w.price;document.getElementById('wishCat').value=w.cat||'auto';document.getElementById('wishPri').value=w.pri||1;document.getElementById('wishLink').value=w.link;document.getElementById('wishMulti').checked=w.multi||false;document.getElementById('saveWishBtn').textContent='Änderungen speichern';document.getElementById('cancelWishBtn').style.display='inline-block';document.getElementById('wishTitle').scrollIntoView({behavior:'smooth'})}
+function cancelWish(){document.getElementById('editWishId').value='';document.getElementById('wishTitle').value='';document.getElementById('wishImage').value='';document.getElementById('wishNote').value='';document.getElementById('wishPrice').value='';document.getElementById('wishCat').value='auto';document.getElementById('wishPri').value='1';document.getElementById('wishLink').value='';document.getElementById('wishMulti').checked=false;document.getElementById('saveWishBtn').textContent='Wunsch hinzufügen';document.getElementById('cancelWishBtn').style.display='none'}
+function saveWish(){const t=document.getElementById('wishTitle').value.trim();const img=document.getElementById('wishImage').value.trim();const n=document.getElementById('wishNote').value.trim();const p=parseFloat(document.getElementById('wishPrice').value);const c=document.getElementById('wishCat').value;const pr=parseInt(document.getElementById('wishPri').value);const l=document.getElementById('wishLink').value.trim();const m=document.getElementById('wishMulti').checked;const eid=document.getElementById('editWishId').value;if(!t||!img||!p||!l){alert('⚠️ Bitte alle Pflichtfelder ausfüllen!');return}const wList=lists.find(x=>x.id===cur);if(eid){const w=wList.wishes.find(x=>x.id===parseInt(eid));w.title=t;w.image=img;w.note=n;w.price=p;w.cat=c;w.pri=pr;w.link=l;w.multi=m}else{wList.wishes.push({id:wList.wishes.length>0?Math.max(...wList.wishes.map(w=>w.id))+1:1,title:t,image:img,note:n,price:p,cat:c,pri:pr,link:l,multi:m,res:[],coms:[]})}save();render();cancelWish()}
+function delWish(id){if(confirm('Wunsch wirklich löschen?')){const wList=lists.find(l=>l.id===cur);wList.wishes=wList.wishes.filter(w=>w.id!==id);save();render()}}
+document.getElementById('pw').addEventListener('keypress',e=>{if(e.key==='Enter')checkPw()});
+load();render();
+</script>
+</body>
+</html>
