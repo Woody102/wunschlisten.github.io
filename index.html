@@ -90,6 +90,7 @@ textarea{min-height:60px;resize:vertical}
   <div id="notice"></div>
   <div class="tabs" id="tabs"></div>
   <div id="content"></div>
+  <div id="status" style="margin-top:30px;text-align:center;font-size:.8em;color:#8a9a8a"></div>
 
   <div class="admin" id="admin">
     <h2>Admin-Bereich</h2>
@@ -289,44 +290,81 @@ function byPrice(a, b) {
 }
 
 function normalize() {
-  lists = toArr(lists);
+  lists = toArr(lists).filter(Boolean);
   lists.forEach(l => {
-    l.wishes = toArr(l.wishes);
+    l.name = l.name || ''; l.intro = l.intro || '';
+    l.wishes = toArr(l.wishes).filter(Boolean);
     l.wishes.forEach(w => {
-      w.res = toArr(w.res).map(r => typeof r === 'string' ? { name: r, detail: '', sid: '' } : { name: r.name || '', detail: r.detail || '', sid: r.sid || r.sessionId || '' });
-      w.coms = toArr(w.coms);
-      w.multiOptions = toArr(w.multiOptions);
+      w.res = toArr(w.res).filter(Boolean).map(r => typeof r === 'string' ? { name: r, detail: '', sid: '' } : { name: r.name || '', detail: r.detail || '', sid: r.sid || r.sessionId || '' });
+      w.coms = toArr(w.coms).filter(Boolean);
+      w.multiOptions = toArr(w.multiOptions).filter(Boolean);
       w.price = (typeof w.price === 'number' && !isNaN(w.price)) ? w.price : null;
-      w.image = w.image || ''; w.note = w.note || ''; w.link = w.link || ''; w.pri = w.pri || 0; w.cat = w.cat || 'auto'; w.multi = !!w.multi;
+      w.title = w.title || ''; w.image = w.image || ''; w.note = w.note || ''; w.link = w.link || ''; w.pri = w.pri || 0; w.cat = w.cat || 'auto'; w.multi = !!w.multi;
     });
   });
-  names = toArr(names);
+  names = toArr(names).filter(Boolean);
   if (!lists.some(l => l.id === curId) && lists.length) curId = lists[0].id;
 }
+
+// Statuszeile am Seitenende (zeigt Verbindung und Fehler an)
+function setStatus(text, ok) {
+  const s = $('status');
+  if (s) { s.textContent = text; s.style.color = ok ? '#6b9d7f' : '#b05a5a'; }
+}
+window.addEventListener('error', e => setStatus('Fehler: ' + e.message + (e.lineno ? ' (Zeile ' + e.lineno + ')' : ''), false));
+window.addEventListener('unhandledrejection', e => setStatus('Fehler: ' + (e.reason && e.reason.message || e.reason), false));
 
 /* ===================== Firebase ===================== */
 let db = null;
 const fbConfigured = firebaseConfig.apiKey && !firebaseConfig.apiKey.startsWith('DEIN');
 if (fbConfigured) {
   try { firebase.initializeApp(firebaseConfig); db = firebase.database(); }
-  catch (e) { console.error('Firebase-Fehler:', e); }
+  catch (e) {
+    console.error('Firebase-Fehler:', e);
+    $('notice').innerHTML = '<div class="notice">Firebase-Konfiguration fehlerhaft: ' + esc(e.message) + '</div>';
+  }
 }
 
 function save() {
   if (!db) return;
-  db.ref('wishlist').set({ lists, names }).catch(e => { console.error(e); info('Speichern fehlgeschlagen: ' + e.message); });
+  try {
+    // JSON-Umweg entfernt "undefined"-Werte, die Firebase sonst ablehnt
+    const clean = JSON.parse(JSON.stringify({ lists, names }));
+    db.ref('wishlist').set(clean)
+      .then(() => setStatus('Gespeichert ✓', true))
+      .catch(e => { console.error(e); setStatus('Speichern fehlgeschlagen: ' + e.message, false); info('Speichern fehlgeschlagen:\n' + e.message); });
+  } catch (e) {
+    console.error(e); setStatus('Speichern fehlgeschlagen: ' + e.message, false); info('Speichern fehlgeschlagen:\n' + e.message);
+  }
 }
 
 function load() {
   if (!db) {
-    $('notice').innerHTML = '<div class="notice">Firebase ist noch nicht eingerichtet – Änderungen werden nicht gespeichert und sind nur in dieser Ansicht sichtbar.</div>';
+    if (fbConfigured) setStatus('Keine Verbindung zu Firebase (siehe Hinweis oben).', false);
+    else $('notice').innerHTML = '<div class="notice">Firebase ist noch nicht eingerichtet – Änderungen werden nicht gespeichert und sind nur in dieser Ansicht sichtbar.</div>';
     normalize(); render(); return;
   }
+  let host = '';
+  try { host = new URL(firebaseConfig.databaseURL).host; } catch (e) { host = firebaseConfig.databaseURL || '?'; }
+  setStatus('Verbinde mit ' + host + ' …', true);
   db.ref('wishlist').on('value', snap => {
-    const d = snap.val();
-    if (d) { lists = d.lists || lists; names = d.names || names; }
-    normalize(); render();
-  }, e => { console.error(e); $('notice').innerHTML = '<div class="notice">Verbindung zur Datenbank fehlgeschlagen.</div>'; });
+    try {
+      const d = snap.val();
+      if (d) {
+        lists = d.lists || [];
+        names = d.names || [];
+        normalize(); render();
+        setStatus('Verbunden mit ' + host + ' · ' + lists.length + ' Wunschzettel, ' + names.length + ' Namen geladen', true);
+      } else {
+        normalize(); render();
+        setStatus('Verbunden mit ' + host + ' · Datenbank ist leer (Beispieldaten sichtbar, werden beim ersten Speichern übernommen)', true);
+      }
+    } catch (e) { console.error(e); setStatus('Fehler beim Anzeigen der Daten: ' + e.message, false); }
+  }, e => {
+    console.error(e);
+    $('notice').innerHTML = '<div class="notice">Verbindung zur Datenbank fehlgeschlagen: ' + esc(e.message) + '</div>';
+    setStatus('Datenbank-Fehler: ' + e.message, false);
+  });
 }
 
 /* ===================== Anzeige ===================== */
