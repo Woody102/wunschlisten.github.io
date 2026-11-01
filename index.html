@@ -214,8 +214,8 @@ const PW_HASH = "7a9630e4fc1adbb8794a5db4f719241bdfb78f5788f2df688f978fab5fba6ba
 /* ===================== Konstanten ===================== */
 const PRI = {
   0: { s: '', t: '' },
-  1: { s: '⭐', t: 'Nett zu haben' },
-  2: { s: '⭐⭐', t: 'Sehr gewünscht' },
+  1: { s: '⭐', t: 'Sehr gewünscht' },
+  2: { s: '⭐⭐', t: 'Besonderer gewünscht' },
   3: { s: '⭐⭐⭐', t: 'Herzenswunsch' }
 };
 const CATS = {
@@ -261,6 +261,47 @@ function dialog(msg, withCancel) {
 const ask = m => dialog(m, true);
 const info = m => dialog(m, false);
 const esc = s => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
+/* HTML in Texten: erlaubt sind nur harmlose Tags/Attribute, alles andere (Skripte, Event-Handler usw.) wird entfernt.
+   Das ist wichtig, weil die Datenbank öffentlich beschreibbar ist. */
+const OK_TAGS = new Set(['A','B','I','U','S','EM','STRONG','BR','P','DIV','SPAN','SMALL','SUB','SUP','MARK','CODE','PRE','BLOCKQUOTE','HR','UL','OL','LI','H1','H2','H3','H4','H5','H6','IMG']);
+const DROP_TAGS = new Set(['SCRIPT','STYLE','IFRAME','OBJECT','EMBED','LINK','META','FORM','INPUT','BUTTON','TEXTAREA','SELECT','SVG','MATH','TEMPLATE','NOSCRIPT','BASE','TITLE','FRAME','FRAMESET','APPLET']);
+function cleanStyle(s) {
+  return s.split(';').filter(d => d.trim() && !/(position|url\s*\(|expression|behavior|@import|javascript|z-index|binding)/i.test(d)).join(';');
+}
+function cleanNode(node) {
+  Array.from(node.childNodes).forEach(ch => {
+    if (ch.nodeType === 3) return;
+    if (ch.nodeType !== 1) { ch.remove(); return; }
+    const tag = ch.tagName.toUpperCase();
+    if (DROP_TAGS.has(tag)) { ch.remove(); return; }
+    if (!OK_TAGS.has(tag)) { cleanNode(ch); ch.replaceWith(...Array.from(ch.childNodes)); return; }
+    Array.from(ch.attributes).forEach(a => {
+      const n = a.name.toLowerCase(), v = a.value;
+      let keep = false;
+      if (n === 'title') keep = true;
+      else if (n === 'style') { const c = cleanStyle(v); if (c) { ch.setAttribute('style', c); keep = true; } }
+      else if (tag === 'A' && n === 'href') keep = /^(https?:|mailto:|tel:|#)/i.test(v.trim());
+      else if (tag === 'IMG' && n === 'src') keep = /^(https?:|data:image\/(png|jpe?g|gif|webp);)/i.test(v.trim());
+      else if (tag === 'IMG' && (n === 'alt' || n === 'width' || n === 'height')) keep = true;
+      if (!keep) ch.removeAttribute(a.name);
+    });
+    if (tag === 'A') { ch.setAttribute('target', '_blank'); ch.setAttribute('rel', 'noopener noreferrer'); }
+    cleanNode(ch);
+  });
+}
+function rich(s) {
+  s = String(s == null ? '' : s);
+  try {
+    const doc = new DOMParser().parseFromString('<body>' + s + '</body>', 'text/html');
+    cleanNode(doc.body);
+    return doc.body.innerHTML;
+  } catch (e) { return esc(s); }
+}
+function plain(s) {
+  try { return new DOMParser().parseFromString('<body>' + String(s == null ? '' : s) + '</body>', 'text/html').body.textContent; }
+  catch (e) { return String(s == null ? '' : s); }
+}
 const toArr = x => Array.isArray(x) ? x : (x && typeof x === 'object' ? Object.values(x) : []);
 const fmtPrice = p => (p == null ? 'Preis verschieden' : p.toFixed(2).replace('.', ',') + ' €');
 const curList = () => lists.find(l => l.id === curId) || lists[0];
