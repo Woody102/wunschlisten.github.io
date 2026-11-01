@@ -167,6 +167,16 @@ textarea{min-height:60px;resize:vertical}
   </div>
 </div>
 
+<div class="modal" id="dlgModal" style="z-index:3000">
+  <div class="modal-box">
+    <p id="dlgMsg" style="margin-bottom:16px;white-space:pre-line"></p>
+    <div class="modal-btns">
+      <button class="btn btn-light" id="dlgCancel">Abbrechen</button>
+      <button class="btn" id="dlgOk">OK</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal" id="resModal">
   <div class="modal-box">
     <h2>Wunsch vormerken</h2>
@@ -198,7 +208,7 @@ const firebaseConfig = {
 
 // Admin-Passwort als SHA-256-Hash (aktuell: admin123)
 // Neues Passwort: Browser-Konsole (F12) -> hashPassword("neuesPasswort") -> Ergebnis hier einsetzen
-const PW_HASH = "7a9630e4fc1adbb8794a5db4f719241bdfb78f5788f2df688f978fab5fba6ba7";
+const PW_HASH = "240be518fabd2724ddb6f04eeb1da5967448d7e831c08c8fa822809f74c720a9";
 
 /* ===================== Konstanten ===================== */
 const PRI = {
@@ -213,7 +223,7 @@ const CATS = {
   '30-50':       { l: '30 – 50 €',         o: 3 },
   '50-100':      { l: '50 – 100 €',        o: 4 },
   'ueber100':    { l: 'über 100 €',        o: 5 },
-  'verschieden': { l: 'Preis verschieden', o: 6 }
+  'verschieden': { l: 'Preis verschieden', o: 0 }   // wird immer als erstes angezeigt
 };
 
 /* ===================== Zustand ===================== */
@@ -236,6 +246,19 @@ try {
 
 /* ===================== Hilfsfunktionen ===================== */
 const $ = id => document.getElementById(id);
+// Eigene Dialoge (Browser-confirm/alert werden z. B. in Vorschau-Fenstern blockiert)
+function dialog(msg, withCancel) {
+  return new Promise(resolve => {
+    $("dlgMsg").textContent = msg;
+    $("dlgCancel").style.display = withCancel ? "block" : "none";
+    $("dlgModal").classList.add("show");
+    const done = v => { $("dlgModal").classList.remove("show"); resolve(v); };
+    $("dlgOk").onclick = () => done(true);
+    $("dlgCancel").onclick = () => done(false);
+  });
+}
+const ask = m => dialog(m, true);
+const info = m => dialog(m, false);
 const esc = s => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 const toArr = x => Array.isArray(x) ? x : (x && typeof x === 'object' ? Object.values(x) : []);
 const fmtPrice = p => (p == null ? 'Preis verschieden' : p.toFixed(2).replace('.', ',') + ' €');
@@ -291,7 +314,7 @@ if (fbConfigured) {
 
 function save() {
   if (!db) return;
-  db.ref('wishlist').set({ lists, names }).catch(e => { console.error(e); alert('Speichern fehlgeschlagen: ' + e.message); });
+  db.ref('wishlist').set({ lists, names }).catch(e => { console.error(e); info('Speichern fehlgeschlagen: ' + e.message); });
 }
 
 function load() {
@@ -367,8 +390,8 @@ function toggleCom(ck) { openCom[ck] = !openCom[ck]; renderContent(); }
 
 function addCom(lid, wid) {
   const ck = lid + '-' + wid, name = $('cn-' + ck).value, text = $('ct-' + ck).value.trim();
-  if (!name) { alert('⚠️ Bitte wähle zuerst deinen Namen aus der Liste aus.'); $('cn-' + ck).focus(); return; }
-  if (!text) { alert('⚠️ Bitte gib einen Kommentar ein.'); $('ct-' + ck).focus(); return; }
+  if (!name) { info('⚠️ Bitte wähle zuerst deinen Namen aus der Liste aus.'); $('cn-' + ck).focus(); return; }
+  if (!text) { info('⚠️ Bitte gib einen Kommentar ein.'); $('ct-' + ck).focus(); return; }
   const w = lists.find(l => l.id === lid).wishes.find(x => x.id === wid);
   w.coms.push({ author: name, text });
   openCom[ck] = true; save(); render();
@@ -420,11 +443,11 @@ function confirmRes() {
   save(); render(); closeRes();
 }
 
-function unreserve(lid, wid, i) {
+async function unreserve(lid, wid, i) {
   const w = lists.find(l => l.id === lid).wishes.find(x => x.id === wid);
   const r = w.res[i];
   if (!r || !(isAdmin || r.sid === sid)) return;
-  if (!confirm(`Vormerkung von "${r.name}" wirklich aufheben?`)) return;
+  if (!await ask(`Vormerkung von "${r.name}" wirklich aufheben?`)) return;
   w.res.splice(i, 1); save(); render();
 }
 
@@ -458,19 +481,19 @@ function renderAdmin() {
 
 function addList() {
   const n = $('newListName').value.trim();
-  if (!n) { alert('⚠️ Bitte einen Namen eingeben.'); return; }
+  if (!n) { info('⚠️ Bitte einen Namen eingeben.'); return; }
   lists.push({ id: lists.length ? Math.max(...lists.map(l => l.id)) + 1 : 1, name: n, intro: $('newListIntro').value.trim() || 'Willkommen auf diesem Wunschzettel!', wishes: [] });
   $('newListName').value = ''; $('newListIntro').value = ''; save(); render();
 }
 function updateList(id) {
   const n = $('ln-' + id).value.trim();
-  if (!n) { alert('⚠️ Der Name darf nicht leer sein.'); return; }
+  if (!n) { info('⚠️ Der Name darf nicht leer sein.'); return; }
   const l = lists.find(x => x.id === id); l.name = n; l.intro = $('li-' + id).value.trim(); save(); render();
 }
-function delList(id) {
-  if (lists.length === 1) { alert('⚠️ Der letzte Wunschzettel kann nicht gelöscht werden.'); return; }
+async function delList(id) {
+  if (lists.length === 1) { info('⚠️ Der letzte Wunschzettel kann nicht gelöscht werden.'); return; }
   const l = lists.find(x => x.id === id);
-  if (!confirm(`Wunschzettel "${l.name}" samt allen Wünschen löschen?`)) return;
+  if (!await ask(`Wunschzettel "${l.name}" samt allen Wünschen löschen?`)) return;
   lists = lists.filter(x => x.id !== id); if (curId === id) curId = lists[0].id; save(); render();
 }
 
@@ -480,8 +503,8 @@ function toggleMultiBox() { $('multiOptionsBox').style.display = $('wishMulti').
 function saveWish() {
   const title = $('wishTitle').value.trim(), varies = $('wishPriceVaries').checked;
   const price = varies ? null : parseFloat($('wishPrice').value);
-  if (!title) { alert('⚠️ Bitte einen Titel eingeben.'); return; }
-  if (!varies && (isNaN(price) || price < 0)) { alert('⚠️ Bitte einen Preis eingeben oder "Preis verschieden" ankreuzen.'); return; }
+  if (!title) { info('⚠️ Bitte einen Titel eingeben.'); return; }
+  if (!varies && (isNaN(price) || price < 0)) { info('⚠️ Bitte einen Preis eingeben oder "Preis verschieden" ankreuzen.'); return; }
   const multi = $('wishMulti').checked;
   const data = {
     title, image: $('wishImage').value.trim(), note: $('wishNote').value.trim(), price,
@@ -508,19 +531,19 @@ function cancelWish() {
   $('wishMulti').checked = false; toggleMultiBox();
   $('wishFormTitle').textContent = 'Wunsch hinzufügen'; $('saveWishBtn').textContent = 'Wunsch hinzufügen'; $('cancelWishBtn').style.display = 'none';
 }
-function delWish(id) {
-  if (!confirm('Wunsch wirklich löschen?')) return;
+async function delWish(id) {
+  if (!await ask('Wunsch wirklich löschen?')) return;
   const L = curList(); L.wishes = L.wishes.filter(w => w.id !== id); save(); render();
 }
 
 function addName() {
   const n = $('newName').value.trim();
-  if (!n) { alert('⚠️ Bitte einen Namen eingeben.'); return; }
-  if (names.includes(n)) { alert('⚠️ Dieser Name existiert bereits.'); return; }
+  if (!n) { info('⚠️ Bitte einen Namen eingeben.'); return; }
+  if (names.includes(n)) { info('⚠️ Dieser Name existiert bereits.'); return; }
   names.push(n); $('newName').value = ''; save(); render();
 }
-function delName(i) {
-  if (!confirm(`"${names[i]}" aus der Namensliste löschen?`)) return;
+async function delName(i) {
+  if (!await ask(`"${names[i]}" aus der Namensliste löschen?`)) return;
   names.splice(i, 1); save(); render();
 }
 
