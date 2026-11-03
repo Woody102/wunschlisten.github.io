@@ -215,7 +215,7 @@ const PW_HASH = "7a9630e4fc1adbb8794a5db4f719241bdfb78f5788f2df688f978fab5fba6ba
 const PRI = {
   0: { s: '', t: '' },
   1: { s: '⭐', t: 'Sehr gewünscht' },
-  2: { s: '⭐⭐', t: 'Besonderer gewünscht' },
+  2: { s: '⭐⭐', t: 'Besonders gewünscht' },
   3: { s: '⭐⭐⭐', t: 'Herzenswunsch' }
 };
 const CATS = {
@@ -412,14 +412,14 @@ function load() {
 function render() { renderTabs(); renderContent(); if (isAdmin) renderAdmin(); }
 
 function renderTabs() {
-  $('tabs').innerHTML = lists.map(l => `<button class="tab-btn${l.id === curId ? ' active' : ''}" onclick="switchList(${l.id})">${esc(l.name)}</button>`).join('');
+  $('tabs').innerHTML = lists.map(l => `<button class="tab-btn${l.id === curId ? ' active' : ''}" onclick="switchList(${l.id})">${rich(l.name)}</button>`).join('');
 }
 function switchList(id) { curId = id; render(); }
 
 function renderContent() {
   const L = curList();
   if (!L) { $('content').innerHTML = ''; return; }
-  let h = `<div class="intro">${esc(L.intro)}</div>
+  let h = `<div class="intro">${rich(L.intro)}</div>
     <div class="filter"><label><input type="checkbox" ${hideRes ? 'checked' : ''} onchange="hideRes=this.checked;renderContent()"><span>Vergriffene Wünsche ausblenden</span></label></div>`;
 
   const groups = {};
@@ -440,15 +440,15 @@ function toggleCat(key) { collapsed[key] = !collapsed[key]; renderContent(); }
 
 function cardHtml(L, w) {
   const sold = isSold(w), p = PRI[w.pri || 0], ck = L.id + '-' + w.id;
-  const img = w.image ? `<img src="${esc(w.image)}" alt="${esc(w.title)}" loading="lazy">` : '<div class="noimg">🎁</div>';
+  const img = w.image ? `<img src="${esc(w.image)}" alt="${esc(plain(w.title))}" loading="lazy">` : '<div class="noimg">🎁</div>';
   const res = w.res.length ? `<div class="res-list"><div class="res-title">Vorgemerkt:</div>${w.res.map((r, i) =>
-    `<div class="res-item"><div class="res-name">✓ ${esc(r.name)}</div>${r.detail ? `<div class="res-detail">${esc(r.detail)}</div>` : ''}${(isAdmin || r.sid === sid) ? `<button class="btn btn-del btn-xs" onclick="unreserve(${L.id},${w.id},${i})">Vormerkung aufheben</button>` : ''}</div>`).join('')}</div>` : '';
-  const coms = w.coms.length ? `<div class="com-list">${w.coms.map(c => `<div class="com-item"><div class="com-author">${esc(c.author)}:</div><div class="com-text">${esc(c.text)}</div></div>`).join('')}</div>` : '';
+    `<div class="res-item"><div class="res-name">✓ ${esc(r.name)}</div>${r.detail ? `<div class="res-detail">${rich(r.detail)}</div>` : ''}${(isAdmin || r.sid === sid) ? `<button class="btn btn-del btn-xs" onclick="unreserve(${L.id},${w.id},${i})">Vormerkung aufheben</button>` : ''}</div>`).join('')}</div>` : '';
+  const coms = w.coms.length ? `<div class="com-list">${w.coms.map(c => `<div class="com-item"><div class="com-author">${esc(c.author)}:</div><div class="com-text">${rich(c.text)}</div></div>`).join('')}</div>` : '';
   return `<div class="card">
     <div class="img-box">${img}${p.s ? `<div class="badge-pri">${p.s} ${p.t}</div>` : ''}${sold ? '<div class="badge-res">bereits vergriffen</div>' : ''}</div>
     <div class="content">
-      <div class="title">${esc(w.title)}</div>
-      ${w.note ? `<div class="note">${esc(w.note)}</div>` : ''}
+      <div class="title">${rich(w.title)}</div>
+      ${w.note ? `<div class="note">${rich(w.note)}</div>` : ''}
       <div class="price">${fmtPrice(w.price)}</div>
       ${w.link ? `<a class="link" href="${esc(w.link)}" target="_blank" rel="noopener">Zum Shop →</a>` : ''}
       ${res}
@@ -551,7 +551,7 @@ function renderAdmin() {
 
   const L = curList();
   $('adminWishes').innerHTML = (L && L.wishes.length) ? L.wishes.slice().sort(byPrice).map(w => `<div class="row">
-      <span><strong>${esc(w.title)}</strong> – ${fmtPrice(w.price)}${w.multi ? ' <em>(Mehrfach)</em>' : ''} <small>[${CATS[getCat(w)].l}]</small></span>
+      <span><strong>${esc(plain(w.title))}</strong> – ${fmtPrice(w.price)}${w.multi ? ' <em>(Mehrfach)</em>' : ''} <small>[${CATS[getCat(w)].l}]</small></span>
       <span style="display:flex;gap:8px"><button class="btn btn-inline" onclick="editWish(${w.id})">Bearbeiten</button><button class="btn btn-del btn-inline" onclick="delWish(${w.id})">Löschen</button></span>
     </div>`).join('') : '<p style="color:#6a7a6a">Noch keine Wünsche vorhanden.</p>';
 
@@ -572,7 +572,7 @@ function updateList(id) {
 async function delList(id) {
   if (lists.length === 1) { info('⚠️ Der letzte Wunschzettel kann nicht gelöscht werden.'); return; }
   const l = lists.find(x => x.id === id);
-  if (!await ask(`Wunschzettel "${l.name}" samt allen Wünschen löschen?`)) return;
+  if (!await ask(`Wunschzettel "${plain(l.name)}" samt allen Wünschen löschen?`)) return;
   lists = lists.filter(x => x.id !== id); if (curId === id) curId = lists[0].id; save(); render();
 }
 
